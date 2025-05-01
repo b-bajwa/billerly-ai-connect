@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { UserRole } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { database, users, calendar, fileText } from "lucide-react";
+import { Database, Users, Calendar, FileText } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -62,15 +62,15 @@ const Login = () => {
             <Tabs defaultValue="admin" className="mb-4" onValueChange={(value) => setRole(value as UserRole)}>
               <TabsList className="grid grid-cols-3 w-full">
                 <TabsTrigger value="admin" className="flex items-center gap-2">
-                  <database className="h-4 w-4" />
+                  <Database className="h-4 w-4" />
                   <span>Admin</span>
                 </TabsTrigger>
                 <TabsTrigger value="doctor" className="flex items-center gap-2">
-                  <users className="h-4 w-4" />
+                  <Users className="h-4 w-4" />
                   <span>Doctor</span>
                 </TabsTrigger>
                 <TabsTrigger value="patient" className="flex items-center gap-2">
-                  <fileText className="h-4 w-4" />
+                  <FileText className="h-4 w-4" />
                   <span>Patient</span>
                 </TabsTrigger>
               </TabsList>
