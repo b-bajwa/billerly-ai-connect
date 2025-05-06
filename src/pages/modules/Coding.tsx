@@ -1,13 +1,19 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FileText } from "lucide-react";
 
 // Demo coding data
-const demoCoding = [
+const initialCodingData = [
   {
     id: "DOC-1001",
     patientId: "P-10001",
@@ -54,7 +60,79 @@ const demoCoding = [
   }
 ];
 
+interface DocFormValues {
+  patientName: string;
+  serviceDate: string;
+  cptCodes: string;
+  icdCodes: string;
+  provider: string;
+  notes: string;
+  status: string;
+}
+
 const Coding: React.FC = () => {
+  const [codingData, setCodingData] = useState(initialCodingData);
+  const [selectedDoc, setSelectedDoc] = useState<typeof initialCodingData[0] | null>(null);
+  const [dialogMode, setDialogMode] = useState<'view' | 'edit'>("view");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const form = useForm<DocFormValues>({
+    defaultValues: {
+      patientName: "",
+      serviceDate: "",
+      cptCodes: "",
+      icdCodes: "",
+      provider: "",
+      notes: "",
+      status: "",
+    }
+  });
+
+  const handleViewDoc = (doc: typeof initialCodingData[0]) => {
+    setSelectedDoc(doc);
+    setDialogMode('view');
+    setIsDialogOpen(true);
+  };
+
+  const handleEditDoc = (doc: typeof initialCodingData[0]) => {
+    setSelectedDoc(doc);
+    setDialogMode('edit');
+    form.reset({
+      patientName: doc.patientName,
+      serviceDate: doc.serviceDate,
+      cptCodes: doc.cptCodes.join(", "),
+      icdCodes: doc.icdCodes.join(", "),
+      provider: doc.provider,
+      notes: doc.notes,
+      status: doc.status,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveDoc = (data: DocFormValues) => {
+    if (!selectedDoc) return;
+    
+    const updatedData = codingData.map(doc => {
+      if (doc.id === selectedDoc.id) {
+        return {
+          ...doc,
+          patientName: data.patientName,
+          serviceDate: data.serviceDate,
+          cptCodes: data.cptCodes.split(",").map(code => code.trim()),
+          icdCodes: data.icdCodes.split(",").map(code => code.trim()),
+          provider: data.provider,
+          notes: data.notes,
+          status: data.status,
+        };
+      }
+      return doc;
+    });
+    
+    setCodingData(updatedData);
+    setIsDialogOpen(false);
+    toast.success("Documentation updated successfully!");
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "complete": return "bg-green-100 text-green-800";
@@ -182,7 +260,7 @@ const Coding: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {demoCoding.map((doc) => (
+              {codingData.map((doc) => (
                 <TableRow key={doc.id}>
                   <TableCell className="font-medium">{doc.id}</TableCell>
                   <TableCell>
@@ -221,8 +299,8 @@ const Coding: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline">View</Button>
-                      <Button size="sm" variant="outline">Edit</Button>
+                      <Button size="sm" variant="outline" onClick={() => handleViewDoc(doc)}>View</Button>
+                      <Button size="sm" variant="outline" onClick={() => handleEditDoc(doc)}>Edit</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -231,6 +309,179 @@ const Coding: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* View/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {dialogMode === 'view' ? 'View Documentation' : 'Edit Documentation'}
+            </DialogTitle>
+            <DialogDescription>
+              {dialogMode === 'view' 
+                ? `Viewing documentation details for ${selectedDoc?.patientName}`
+                : `Edit documentation details for ${selectedDoc?.patientName}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {dialogMode === 'view' && selectedDoc && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold">Patient</h4>
+                  <p>{selectedDoc.patientName} ({selectedDoc.patientId})</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Service Date</h4>
+                  <p>{selectedDoc.serviceDate}</p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold">CPT Codes</h4>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {selectedDoc.cptCodes.map(code => (
+                    <span key={code} className="inline-block px-2 py-1 text-xs font-mono bg-blue-100 text-blue-800 rounded">
+                      {code}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold">ICD-10 Codes</h4>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {selectedDoc.icdCodes.map(code => (
+                    <span key={code} className="inline-block px-2 py-1 text-xs font-mono bg-purple-100 text-purple-800 rounded">
+                      {code}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold">Provider</h4>
+                <p>{selectedDoc.provider}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Status</h4>
+                <Badge 
+                  variant="outline"
+                  className={getStatusColor(selectedDoc.status)}
+                >
+                  {selectedDoc.status}
+                </Badge>
+              </div>
+              <div>
+                <h4 className="font-semibold">Notes</h4>
+                <p className="text-sm text-muted-foreground">{selectedDoc.notes}</p>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => handleEditDoc(selectedDoc)}>Edit</Button>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+          
+          {dialogMode === 'edit' && (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSaveDoc)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="patientName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Patient Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="serviceDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Service Date</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="cptCodes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CPT Codes (comma separated)</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="99213, 85025" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="icdCodes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ICD-10 Codes (comma separated)</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="E11.9, I10" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="provider"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Provider</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button type="submit">Save Changes</Button>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

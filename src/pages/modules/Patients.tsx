@@ -5,10 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserPlus, FileText, FileCheck, Receipt, ChartBar, ShieldCheck } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { UserPlus } from "lucide-react";
 
 // Demo patient data
-const demoPatients = [
+const initialPatients = [
   {
     id: "P-10001",
     name: "Sarah Johnson",
@@ -61,10 +65,48 @@ const demoPatients = [
   }
 ];
 
+interface PatientFormValues {
+  name: string;
+  dob: string;
+  insuranceProvider: string;
+  policyNumber: string;
+  status: string;
+}
+
 const Patients: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [patients, setPatients] = useState(initialPatients);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  const filteredPatients = demoPatients.filter(patient => 
+  const form = useForm<PatientFormValues>({
+    defaultValues: {
+      name: "",
+      dob: "",
+      insuranceProvider: "",
+      policyNumber: "",
+      status: "pending",
+    }
+  });
+
+  const handleAddPatient = (data: PatientFormValues) => {
+    const newPatient = {
+      id: `P-${10000 + patients.length + 1}`,
+      name: data.name,
+      dob: data.dob,
+      insuranceProvider: data.insuranceProvider,
+      policyNumber: data.policyNumber,
+      status: data.status,
+      lastVisit: "N/A",
+      balance: 0
+    };
+    
+    setPatients([newPatient, ...patients]);
+    setIsDialogOpen(false);
+    form.reset();
+    toast.success("New patient added successfully!");
+  };
+  
+  const filteredPatients = patients.filter(patient => 
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     patient.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.insuranceProvider.toLowerCase().includes(searchTerm.toLowerCase())
@@ -86,10 +128,78 @@ const Patients: React.FC = () => {
           <h1 className="text-3xl font-bold">Patient Registration</h1>
           <p className="text-muted-foreground">Manage patient information and registrations</p>
         </div>
-        <Button className="flex items-center gap-2">
-          <UserPlus size={16} />
-          <span>New Patient</span>
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <UserPlus size={16} />
+              <span>New Patient</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Patient</DialogTitle>
+              <DialogDescription>
+                Enter patient details to register them in the system.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleAddPatient)} className="space-y-4 py-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter patient name" {...field} required />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="dob"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
+                      <FormControl>
+                        <Input placeholder="MM/DD/YYYY" {...field} required />
+                      </FormControl>
+                      <FormDescription>Format: MM/DD/YYYY</FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="insuranceProvider"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Insurance Provider</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter insurance provider" {...field} required />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="policyNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Policy Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter policy number" {...field} required />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button type="submit">Add Patient</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
       
       <Card>
@@ -162,7 +272,7 @@ const Patients: React.FC = () => {
         </CardContent>
         <CardFooter className="flex justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {filteredPatients.length} of {demoPatients.length} patients
+            Showing {filteredPatients.length} of {patients.length} patients
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled>Previous</Button>
