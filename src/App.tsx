@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +24,7 @@ import Claims from "./pages/modules/Claims";
 import Billing from "./pages/modules/Billing";
 import Reports from "./pages/modules/Reports";
 import InsuranceVerification from "./pages/modules/InsuranceVerification";
+import MyPatients from "./pages/modules/MyPatients";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,7 @@ const App = () => (
             <Route path="/billing" element={<AppLayout><Billing /></AppLayout>} />
             <Route path="/reports" element={<AppLayout><Reports /></AppLayout>} />
             <Route path="/insurance-verification" element={<AppLayout><InsuranceVerification /></AppLayout>} />
+            <Route path="/my-patients" element={<AppLayout><MyPatients /></AppLayout>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />

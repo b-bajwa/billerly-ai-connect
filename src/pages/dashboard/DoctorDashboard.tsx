@@ -1,13 +1,30 @@
 
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ModuleCard from "@/components/dashboard/ModuleCard";
 import { Users, ClipboardList, Database, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 const DoctorDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [isEditCodesDialogOpen, setIsEditCodesDialogOpen] = useState(false);
+  
+  const form = useForm({
+    defaultValues: {
+      icdCodes: "",
+      cptCodes: ""
+    }
+  });
+
   // Mock stats for demo
   const stats = [
     { title: "My Patients", value: "142", change: "+5%" },
@@ -49,7 +66,7 @@ const DoctorDashboard: React.FC = () => {
   ];
   
   // Demo recent patient visits
-  const recentPatients = [
+  const [recentPatients, setRecentPatients] = useState([
     {
       id: "PAT-10032",
       name: "Sarah Johnson",
@@ -94,11 +111,34 @@ const DoctorDashboard: React.FC = () => {
         cptCodes: ["99395", "85025", "80061"] 
       },
     },
-  ];
+  ]);
   
-  const handleEditCodes = (patientId: string) => {
-    console.log(`Edit codes for patient ${patientId}`);
-    // In a real app, this would open a modal or navigate to an edit page
+  const handleEditCodes = (patient: any) => {
+    setSelectedPatient(patient);
+    form.reset({
+      icdCodes: patient.medicalCodes.icdCodes.join(", "),
+      cptCodes: patient.medicalCodes.cptCodes.join(", ")
+    });
+    setIsEditCodesDialogOpen(true);
+  };
+  
+  const handleSaveCodes = (data: any) => {
+    const updatedPatients = recentPatients.map(patient => {
+      if (patient.id === selectedPatient.id) {
+        return {
+          ...patient,
+          medicalCodes: {
+            icdCodes: data.icdCodes.split(", ").map((code: string) => code.trim()),
+            cptCodes: data.cptCodes.split(", ").map((code: string) => code.trim())
+          }
+        };
+      }
+      return patient;
+    });
+    
+    setRecentPatients(updatedPatients);
+    setIsEditCodesDialogOpen(false);
+    toast.success("Medical codes updated successfully!");
   };
 
   const getStatusColor = (status: string) => {
@@ -145,8 +185,11 @@ const DoctorDashboard: React.FC = () => {
 
       {/* Recent Patients */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Recent Patient Visits</CardTitle>
+          <Button size="sm" variant="outline" onClick={() => navigate("/my-patients")}>
+            View All Patients
+          </Button>
         </CardHeader>
         <CardContent>
           <Table>
@@ -192,7 +235,7 @@ const DoctorDashboard: React.FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => handleEditCodes(patient.id)}>
+                    <Button size="sm" variant="outline" onClick={() => handleEditCodes(patient)}>
                       Edit Codes
                     </Button>
                   </TableCell>
@@ -219,6 +262,49 @@ const DoctorDashboard: React.FC = () => {
           ))}
         </div>
       </div>
+      
+      {/* Edit Medical Codes Dialog */}
+      <Dialog open={isEditCodesDialogOpen} onOpenChange={setIsEditCodesDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Medical Codes</DialogTitle>
+            <DialogDescription>
+              Update ICD and CPT codes for {selectedPatient?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSaveCodes)} className="space-y-4 py-4">
+              <FormField
+                control={form.control}
+                name="icdCodes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ICD Codes</FormLabel>
+                    <FormControl>
+                      <Input placeholder="E.g. I10, E11.9" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="cptCodes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CPT Codes</FormLabel>
+                    <FormControl>
+                      <Input placeholder="E.g. 99213, 85025" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
